@@ -18,9 +18,9 @@ namespace ConsoleApp1
     {
         struct struct_General_Provision
         {
-            public int number_result;
+            public long number_result;
             public string name_search;
-            public struct_General_Provision(int number_result, string name_search)
+            public struct_General_Provision(long number_result, string name_search)
             {
                 this.number_result = number_result;
                 this.name_search = name_search;
@@ -29,9 +29,9 @@ namespace ConsoleApp1
         }
         struct struct_Duties
         {
-            public int number_result;
+            public long number_result;
             public string name_search;
-            public struct_Duties(int number_result, string name_search)
+            public struct_Duties(long number_result, string name_search)
             {
                 this.number_result = number_result;
                 this.name_search = name_search;
@@ -40,9 +40,9 @@ namespace ConsoleApp1
         }
         struct struct_Rights
         {
-            public int number_result;
+            public long number_result;
             public string name_search;
-            public struct_Rights(int number_result, string name_search)
+            public struct_Rights(long number_result, string name_search)
             {
                 this.number_result = number_result;
                 this.name_search = name_search;
@@ -52,16 +52,16 @@ namespace ConsoleApp1
         [STAThread]
         static void Main(string[] args)
         {
-            
-            List<string>general_Provisions = new List<string> { "Общие положения", "ОБЩИЕ ПОЛОЖЕНИЯ"};
-            List<string> duties = new List<string> { "Обязанности","обязанности","ОБЯЗАННОСТИ"};
+
+            List<string> general_Provisions = new List<string> { "Общие положения", "ОБЩИЕ ПОЛОЖЕНИЯ" };
+            List<string> duties = new List<string> { "Обязанности", "обязанности", "ОБЯЗАННОСТИ" };
             List<string> rights = new List<string> { "Права", "права", "ПРАВА" };
             List<string> general_Provisions_list = new List<string> { };
             List<string> duties_list = new List<string> { };
             List<string> rights_list = new List<string> { };
             List<int> number_result;
-            int id_duties = 0,id_rights = 0, id_general_Provisions = 0;
-           
+            int id_duties = 0, id_rights = 0, id_general_Provisions = 0;
+
             List<string> parText = new List<string> { };
             //Открытие файла и выгрузка его в список
             OpenFileDialog dialog = new OpenFileDialog
@@ -80,12 +80,12 @@ namespace ConsoleApp1
                 {
 
                     parText.Add(doc.Paragraphs[i].Range.Text);
-                    Console.WriteLine(parText[parText.Count-1]);
-                    
+                    Console.WriteLine(parText[parText.Count - 1]);
+
                 }
-                
+
                 app.Quit();
-               
+
             }
             //Нахождение строк основных разделителей на группы
             for (int i = 0; i < parText.Count; i++)
@@ -105,7 +105,7 @@ namespace ConsoleApp1
             }
 
             //Загрузка общих положений
-            while (parText[id_general_Provisions+2].ToString().Length > 5)
+            while (parText[id_general_Provisions + 2].ToString().Length > 5)
             {
                 general_Provisions_list.Add(parText[id_general_Provisions + 2]);
                 id_general_Provisions++;
@@ -121,17 +121,17 @@ namespace ConsoleApp1
             {
                 rights_list.Add(parText[id_rights + 2]);
                 id_rights++;
-                
+
             }
 
             List<struct_General_Provision> s_G_P = new List<struct_General_Provision>();
             List<struct_Duties> s_D = new List<struct_Duties>();
             List<struct_Rights> s_R = new List<struct_Rights>();
-            foreach (string list in general_Provisions)
+            foreach (string list in general_Provisions_list)
             {
                 Random rnd = new Random();
-                int value = rnd.Next(800,1400);
-                s_G_P.Add(new struct_General_Provision(pars(list),list));
+                int value = rnd.Next(800, 1400);
+                s_G_P.Add(new struct_General_Provision(pars(list), list));
                 Thread.Sleep(value);
             }
             foreach (string list in duties_list)
@@ -145,54 +145,100 @@ namespace ConsoleApp1
             {
                 Random rnd = new Random();
                 int value = rnd.Next(800, 1400);
-                s_R.Add(new struct_Rights(pars(list),list));
+                s_R.Add(new struct_Rights(pars(list), list));
                 Thread.Sleep(value);
             }
+            //Подсчёт среднего арифметического
+            double sum = 0;
+            double avg_general_Provisions = 0, avg_Duties = 0, avg_Rights = 0;
+            for (int i = 0; i < s_G_P.Count; i++)
+            {
+                sum += s_G_P[i].number_result;
+            }
+            avg_general_Provisions = Convert.ToDouble(sum / s_G_P.Count) * 0.7;
+            sum = 0;
+            for (int i = 0; i < s_D.Count; i++)
+            {
+                sum += s_D[i].number_result;
+            }
+            avg_Duties = Convert.ToDouble(sum / s_D.Count) * 0.7;
+            sum = 0;
+            for (int i = 0; i < s_R.Count; i++)
+            {
+                sum += s_R[i].number_result;
+            }
+            avg_Rights = Convert.ToDouble(sum / s_R.Count) * 0.7;
 
-            
+            // Сохранение в файлы
+
+            string docPath = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
+
+            using (StreamWriter w = new StreamWriter("General Provisions.txt", false, Encoding.GetEncoding(1251)))
+            {
+                for (int i = 0; i < s_G_P.Count; i++)
+                {
+                    if (s_G_P[i].number_result > avg_general_Provisions)
+                        continue;
+                    w.WriteLine(s_G_P[i].name_search);
+                }
+            }
+
+            using (StreamWriter w = new StreamWriter("Duties.txt", false, Encoding.GetEncoding(1251)))
+            {
+                for (int i = 0; i < s_D.Count; i++)
+                {
+                    if (s_D[i].number_result > avg_Duties)
+                        continue;
+                    w.WriteLine(s_D[i].name_search);
+                }
+            }
+
+
+
+            using (StreamWriter w = new StreamWriter("Rights.txt", false, Encoding.GetEncoding(1251)))
+            {
+                for (int i = 0; i < s_R.Count; i++)
+                {
+                    if (s_R[i].number_result > avg_Rights)
+                        continue;
+                    w.WriteLine(s_R[i].name_search);
+                }
+            }
+            MessageBox.Show("Формирование выжимки окончено");
             Console.ReadKey();
 
         }
+
         //Парс колличества результатов
-        static int pars(string name)
+        static long pars(string name)
         {
-            string url = "https://google.com/search?q=";
+            string url = "https://google.com/search?q="; //Дополняемая ссылка 
             url = url + name;
-            HtmlAgilityPack.HtmlWeb webDoc = new HtmlWeb();
-            HtmlAgilityPack.HtmlDocument doc = webDoc.Load(url);
-            string text = null;
-            int num = 0;
-            foreach (HtmlNode node in doc.DocumentNode.SelectNodes("//div[@id]"))
-            {
-                text = node.GetAttributeValue("id", String.Empty);
-                if (text == "result-stats")
-                {
-                    text = node.InnerHtml;
-                    break;
-                }
+			HtmlAgilityPack.HtmlWeb webDoc = new HtmlWeb();
+			HtmlAgilityPack.HtmlDocument doc = webDoc.Load(url);
+			string text = null;
+			string res = null;
+			foreach (HtmlNode node in doc.DocumentNode.SelectNodes("//div[@id]"))
+			{
+				text = node.GetAttributeValue("id", String.Empty);
+				if (text == "result-stats")
+				{
+					text = node.InnerText;
+					break;
+				}
 
-            }
-            string[] split = text.Split(new char[] { '<', '>' });
-            string[] res = null;
-            foreach (string s in split)
-            {
-                res = s.Split(new char[] { ' ' });
-                if (res[0] == "Результатов:")
-                {
-                    break;
-                }
-                else res = null;
-            }
-            text = String.Join(String.Empty, res);
-            foreach (char c in text.ToCharArray())
-            {
-                if (Convert.ToInt32(c) > 47 && Convert.ToInt32(c) < 58)
-                    text += c;
-
-                num = Convert.ToInt32(text);
-            }
-            return num;
-        }
+			}
+			foreach (string s in text.Split(new char[] { ' ' }))
+				foreach (char c in s.ToCharArray())
+				{
+					if ((Convert.ToInt32(c) > 47 && Convert.ToInt32(c) < 58) || (Convert.ToInt32(c) == 160))
+					{
+						if (Convert.ToInt32(c) != 160) res += c;
+					}
+					else break;
+				}
+            return Convert.ToInt64(res);
+		}
     }
    
 }

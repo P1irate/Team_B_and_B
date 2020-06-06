@@ -11,6 +11,10 @@ using OpenQA.Selenium.Chrome;
 using Word = Microsoft.Office.Interop.Word;
 using System.Windows.Forms;
 using HtmlAgilityPack;
+using Amazon;
+using Amazon.Polly;
+using Amazon.Polly.Model;
+using Amazon.Runtime;
 
 namespace ConsoleApp1
 {
@@ -52,8 +56,14 @@ namespace ConsoleApp1
         [STAThread]
         static void Main(string[] args)
         {
+            Console.Write("Введите название профессии: ");
+            string NameProf = Console.ReadLine();
+            string path = CreateCatalog(NameProf) + "\\";
+            string AccessKeyID = "AKIAIKFSWLHW3D6LO4YA";
+            string SecretAccessKey = "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";
 
-            List<string> general_Provisions = new List<string> { "Общие положения", "ОБЩИЕ ПОЛОЖЕНИЯ" };
+
+            List<string> general_Provisions = new List<string> { "Общие положения", "ОБЩИЕ ПОЛОЖЕНИЯ", "Общие правила", "ОБЩИЕ ПРАВИЛА" };
             List<string> duties = new List<string> { "Обязанности", "обязанности", "ОБЯЗАННОСТИ" };
             List<string> rights = new List<string> { "Права", "права", "ПРАВА" };
             List<string> general_Provisions_list = new List<string> { };
@@ -172,38 +182,57 @@ namespace ConsoleApp1
             // Сохранение в файлы
 
             string docPath = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
+            string audiotext  = "";
 
-            using (StreamWriter w = new StreamWriter("General Provisions.txt", false, Encoding.GetEncoding(1251)))
+
+            using (StreamWriter w = new StreamWriter(path + "General Provisions.txt", false, Encoding.GetEncoding(1251)))
             {
                 for (int i = 0; i < s_G_P.Count; i++)
                 {
                     if (s_G_P[i].number_result > avg_general_Provisions)
                         continue;
                     w.WriteLine(s_G_P[i].name_search);
+                    audiotext += s_G_P[i].name_search;
                 }
             }
 
-            using (StreamWriter w = new StreamWriter("Duties.txt", false, Encoding.GetEncoding(1251)))
+            using (StreamWriter w = new StreamWriter(path + "Duties.txt", false, Encoding.GetEncoding(1251)))
             {
                 for (int i = 0; i < s_D.Count; i++)
                 {
                     if (s_D[i].number_result > avg_Duties)
                         continue;
                     w.WriteLine(s_D[i].name_search);
+                    audiotext += s_D[i].name_search;
                 }
             }
 
 
 
-            using (StreamWriter w = new StreamWriter("Rights.txt", false, Encoding.GetEncoding(1251)))
+            using (StreamWriter w = new StreamWriter(path + "Rights.txt", false, Encoding.GetEncoding(1251)))
             {
                 for (int i = 0; i < s_R.Count; i++)
                 {
                     if (s_R[i].number_result > avg_Rights)
                         continue;
                     w.WriteLine(s_R[i].name_search);
+                    audiotext += s_R[i].name_search;
                 }
             }
+
+            BasicAWSCredentials awsCredentials =
+               new BasicAWSCredentials(AccessKeyID, SecretAccessKey);
+
+            // создаём объект класса AmazonPollyClient, 
+            // передавая данные аккаунта и указывая используемый регион
+            AmazonPollyClient amazonPollyClient = new AmazonPollyClient(awsCredentials, RegionEndpoint.EUCentral1);
+            // создаём объект запроса
+            string text_Speech = audiotext;
+            SynthesizeSpeechRequest synthesizeSpeechRequest = MakeSynthesizeSpeechRequest(text_Speech);
+            // получаем ответ от AWS Polly
+            SynthesizeSpeechResponse synthesizeSpeechResponse = amazonPollyClient.SynthesizeSpeech(synthesizeSpeechRequest);
+
+            CreateMp3File(synthesizeSpeechResponse.AudioStream, path, NameProf);
             MessageBox.Show("Формирование выжимки окончено");
             Console.ReadKey();
 
@@ -237,8 +266,50 @@ namespace ConsoleApp1
 					}
 					else break;
 				}
-            return Convert.ToInt64(res);
+            return Convert.ToInt32(res);
 		}
+        private static SynthesizeSpeechRequest MakeSynthesizeSpeechRequest(string text)
+        {
+            // создаём объект запроса
+            SynthesizeSpeechRequest synthesizeSpeechRequest = new SynthesizeSpeechRequest();
+            // передаём необходимый текст
+            synthesizeSpeechRequest.Text = text;
+            // указываем код передаваемого языка
+            synthesizeSpeechRequest.LanguageCode = LanguageCode.RuRU;
+            // указываем выходной формат
+            synthesizeSpeechRequest.OutputFormat = OutputFormat.Mp3;
+            // указываем желаемый голос
+            synthesizeSpeechRequest.VoiceId = VoiceId.Maxim;
+
+            return synthesizeSpeechRequest;
+        }
+
+        // метод для создания mp3 файла
+        private static void CreateMp3File(Stream audioStream, string path, string Name)
+        {
+            // указываем путь к сохраняемому mp3 файлу
+            string pathToMp3 = path + Name + ".mp3";
+
+            using (FileStream fileStream = File.Create(pathToMp3))
+            {
+                audioStream.CopyTo(fileStream);
+                fileStream.Flush();
+                fileStream.Close();
+            }
+        }
+
+        public static string CreateCatalog(string NameFile)
+        {
+            string path = @"B:\File";
+            string subpath = @""+NameFile;
+            DirectoryInfo dirInfo = new DirectoryInfo(path);
+            if (!dirInfo.Exists)
+            {
+                dirInfo.Create();
+            }
+            dirInfo.CreateSubdirectory(subpath);
+            return path + "\\"+subpath;
+        }
     }
    
 }
